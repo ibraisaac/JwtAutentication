@@ -22,13 +22,19 @@ namespace JwtAutentication.Repositories
 Select Usuario.Id, Usuario.Nome,  Usuario.Senha, 
        Perfil.Descricao, Perfil.Id As Perfil_Id
 From Usuario 
-	Inner Join Usuario_Perfil On
+	Left Join Usuario_Perfil On
 		Usuario.Id = Usuario_Perfil.Usuario_Id
-	Inner Join Perfil On
+	Left Join Perfil On
 		Usuario_Perfil.Perfil_Id = Perfil.Id
 ";
 
         public async Task<User> GetUser(int id)
+        {
+            User user = GetUserById(id);
+            return await Task.FromResult(user);
+        }
+
+        private User GetUserById(int id)
         {
             User user = new User();
             using SqlConnection con = new SqlConnection(_configuration.GetConnectionString("DefaultConnection"));
@@ -46,11 +52,9 @@ From Usuario
                 user.Password = "****";
 
                 FillPerfis(new List<User>(), dt, user);
-
-                return await Task.FromResult(user);
             }
-            else
-                return await Task.FromResult(user);
+
+            return user;
         }
 
         public async Task<IEnumerable<User>> GetUsers()
@@ -85,15 +89,68 @@ From Usuario
 
             foreach (var dataRow in perfisFilter)
             {
-                Profile perfil = new Profile()
+                if (int.TryParse(dataRow["Perfil_Id"].ToString(), out _))
                 {
-                    Id = int.Parse(dataRow["Perfil_Id"].ToString()),
-                    Descricao = dataRow["Descricao"].ToString()
-                };
-                perfis.Add(perfil);
+                    Profile perfil = new Profile()
+                    {
+                        Id = int.Parse(dataRow["Perfil_Id"].ToString()),
+                        Descricao = dataRow["Descricao"].ToString()
+                    };
+                    perfis.Add(perfil);
+                }
             }
             user.Perfis = perfis;
             users.Add(user);
+        }
+
+        public async Task<User> AddUser(User user)
+        {
+            string cmdInsert = "Insert Into Usuario Output Inserted.Id Values (@nome, @senha)";
+            using SqlConnection con = new SqlConnection(_configuration.GetConnectionString("DefaultConnection"));
+            using SqlCommand cmd = new SqlCommand(cmdInsert, con);
+            cmd.Parameters.Add("@nome", SqlDbType.VarChar);
+            cmd.Parameters["@nome"].Value = user.Username;
+            cmd.Parameters.Add("@senha", SqlDbType.VarChar);
+            cmd.Parameters["@senha"].Value = user.Password;
+            con.Open();
+            var newId = await Task.FromResult(cmd.ExecuteScalar());
+            con.Close();
+            User newUser = GetUserById((Int32)newId);
+            return newUser;
+        }
+
+        public async Task<string> UpdateUser(User user)
+        {
+            string cmdInsert = "Update Usuario set nome=@nome, senha=@senha where Id=@id";
+            using SqlConnection con = new SqlConnection(_configuration.GetConnectionString("DefaultConnection"));
+            using SqlCommand cmd = new SqlCommand(cmdInsert, con);
+            cmd.Parameters.Add("@Id", SqlDbType.Int);
+            cmd.Parameters["@Id"].Value = user.Id;
+            cmd.Parameters.Add("@nome", SqlDbType.VarChar);
+            cmd.Parameters["@nome"].Value = user.Username;
+            cmd.Parameters.Add("@senha", SqlDbType.VarChar);
+            cmd.Parameters["@senha"].Value = user.Password;
+
+            var result = await Task.FromResult(cmd.ExecuteNonQuery());
+            if (result > 0)
+                return $"Usuario {user.Username} atualizado com sucesso";
+            else
+                return "Erro ao atualizar usuario";
+        }
+
+        public async Task<string> DeleteUser(int id)
+        {
+            string cmdInsert = "Delete From Usuario where Id=@id";
+            using SqlConnection con = new SqlConnection(_configuration.GetConnectionString("DefaultConnection"));
+            using SqlCommand cmd = new SqlCommand(cmdInsert, con);
+            cmd.Parameters.Add("@Id", SqlDbType.Int);
+            cmd.Parameters["@Id"].Value = id;
+
+            var result = await Task.FromResult(cmd.ExecuteNonQuery());
+            if (result > 0)
+                return $"Usuario deletado com sucesso";
+            else
+                return "Erro ao deletar usuario";
         }
 
         public User UserAutentication(string name, string password)

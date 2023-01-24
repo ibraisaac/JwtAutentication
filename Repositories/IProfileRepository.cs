@@ -10,5 +10,9 @@ namespace JwtAutentication.Repositories
     {
         Task<IEnumerable<Profile>> GetProfiles();
         Task<Profile> GetProfile(int id);
+        Task<User> AddUser(User user);
+        Task<string> UpdateUser(User user);
+        Task<string> DeleteUser(int id);
+
     }
 }

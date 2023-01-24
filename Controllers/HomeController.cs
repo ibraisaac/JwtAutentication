@@ -18,8 +18,8 @@ namespace JwtAutentication.Controllers
 
         private IUserRepository userRepository;
         private IProfileRepository profileRepository;
-        public HomeController(IUserRepository repoUser, IProfileRepository repoProfile) 
-        { 
+        public HomeController(IUserRepository repoUser, IProfileRepository repoProfile)
+        {
             userRepository = repoUser;
             profileRepository = repoProfile;
         }
@@ -91,6 +91,28 @@ namespace JwtAutentication.Controllers
             {
                 return StatusCode(StatusCodes.Status500InternalServerError,
                     "Erro ao buscar usuarios no banco de dados." + ex.Message);
+            }
+        }
+
+        [HttpPost]
+        [Route("user")]
+        [Authorize]
+        public async Task<ActionResult<User>> CreateUser([FromBody]User user)
+        {
+            try
+            {
+                if (user is null)
+                    return BadRequest();
+
+                var createdUser = await userRepository.AddUser(user);
+
+                return CreatedAtAction(nameof(GetUser),
+                    new { id = createdUser.Id }, createdUser);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                    "Erro ao inserir usuario" + ex.Message);
             }
         }
 
