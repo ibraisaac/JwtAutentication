@@ -119,7 +119,7 @@ From Usuario
             return newUser;
         }
 
-        public async Task<string> UpdateUser(User user)
+        public async Task<User> UpdateUser(User user)
         {
             string cmdInsert = "Update Usuario set nome=@nome, senha=@senha where Id=@id";
             using SqlConnection con = new SqlConnection(_configuration.GetConnectionString("DefaultConnection"));
@@ -130,12 +130,11 @@ From Usuario
             cmd.Parameters["@nome"].Value = user.Username;
             cmd.Parameters.Add("@senha", SqlDbType.VarChar);
             cmd.Parameters["@senha"].Value = user.Password;
-
+            con.Open();
             var result = await Task.FromResult(cmd.ExecuteNonQuery());
-            if (result > 0)
-                return $"Usuario {user.Username} atualizado com sucesso";
-            else
-                return "Erro ao atualizar usuario";
+            con.Close();
+
+            return user;
         }
 
         public async Task<string> DeleteUser(int id)
@@ -143,10 +142,12 @@ From Usuario
             string cmdInsert = "Delete From Usuario where Id=@id";
             using SqlConnection con = new SqlConnection(_configuration.GetConnectionString("DefaultConnection"));
             using SqlCommand cmd = new SqlCommand(cmdInsert, con);
+            con.Open();
             cmd.Parameters.Add("@Id", SqlDbType.Int);
             cmd.Parameters["@Id"].Value = id;
 
             var result = await Task.FromResult(cmd.ExecuteNonQuery());
+            con.Close();
             if (result > 0)
                 return $"Usuario deletado com sucesso";
             else

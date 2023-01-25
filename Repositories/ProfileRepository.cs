@@ -18,6 +18,37 @@ namespace JwtAutentication.Repositories
             _configuration = config;
         }
 
+        public async Task<Profile> AddProfile(Profile profile)
+        {
+            string cmdInsert = "Insert Into Perfil Output Inserted.Id Values (@descricao)";
+            using SqlConnection con = new SqlConnection(_configuration.GetConnectionString("DefaultConnection"));
+            using SqlCommand cmd = new SqlCommand(cmdInsert, con);
+            cmd.Parameters.Add("@descricao", SqlDbType.VarChar);
+            cmd.Parameters["@descricao"].Value = profile.Descricao;
+            con.Open();
+            var newId = await Task.FromResult(cmd.ExecuteScalar());
+            con.Close();
+            Profile newProfile = GetProfileById((Int32)newId);
+            return profile;
+        }
+
+        public async Task<string> DeleteProfile(int id)
+        {
+            string cmdInsert = "Delete From Perfil where Id=@id";
+            using SqlConnection con = new SqlConnection(_configuration.GetConnectionString("DefaultConnection"));
+            using SqlCommand cmd = new SqlCommand(cmdInsert, con);
+            con.Open();
+            cmd.Parameters.Add("@Id", SqlDbType.Int);
+            cmd.Parameters["@Id"].Value = id;
+
+            var result = await Task.FromResult(cmd.ExecuteNonQuery());
+            con.Close();
+            if (result > 0)
+                return $"Perfil deletado com sucesso";
+            else
+                return "Erro ao deletar perfil";
+        }
+
         public async Task<Profile> GetProfile(int id)
         {
             Profile profile = new Profile();
@@ -57,6 +88,42 @@ namespace JwtAutentication.Repositories
             }
 
             return await Task.FromResult(profiles);
+        }
+
+        public async Task<Profile> UpdateProfile(Profile profile)
+        {
+            string cmdInsert = "Update Perfil set Descricao=@descricao where Id=@id";
+            using SqlConnection con = new SqlConnection(_configuration.GetConnectionString("DefaultConnection"));
+            using SqlCommand cmd = new SqlCommand(cmdInsert, con);
+            cmd.Parameters.Add("@Id", SqlDbType.Int);
+            cmd.Parameters["@Id"].Value = profile.Id;
+            cmd.Parameters.Add("@descricao", SqlDbType.VarChar);
+            cmd.Parameters["@descricao"].Value = profile.Descricao;
+            con.Open();
+            var result = await Task.FromResult(cmd.ExecuteNonQuery());
+            con.Close();
+
+            return profile;
+        }
+
+        private Profile GetProfileById(int id)
+        {
+            Profile profile = new Profile();
+            using SqlConnection con = new SqlConnection(_configuration.GetConnectionString("DefaultConnection"));
+            using SqlCommand cmd = new SqlCommand("Select * From Perfil Where Id = @Id", con);
+            cmd.Parameters.Add("@Id", SqlDbType.Int);
+            cmd.Parameters["@Id"].Value = id;
+            using SqlDataAdapter sqlDataAdapter = new SqlDataAdapter(cmd);
+            DataTable dt = new DataTable();
+            sqlDataAdapter.Fill(dt);
+
+            if (dt.Rows.Count > 0)
+            {
+                profile.Id = int.Parse(dt.Rows[0]["Id"].ToString());
+                profile.Descricao = dt.Rows[0]["Descricao"].ToString();
+            }
+
+            return profile;
         }
     }
 }
