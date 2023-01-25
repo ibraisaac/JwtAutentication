@@ -33,6 +33,7 @@ namespace JwtAutentication
             services.AddCors();
             services.AddSingleton<IUserRepository, UserRepository>();
             services.AddSingleton<IProfileRepository, ProfileRepository>();
+            services.AddSingleton<IUser_ProfileRepository, User_ProfileRepository>();
             services.AddControllers();
             services.AddSwaggerGen(c => 
             {
